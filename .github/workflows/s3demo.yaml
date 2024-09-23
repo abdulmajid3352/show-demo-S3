@@ -19,9 +19,9 @@ jobs:
     - name: Configure AWS credentials from OpenID Connect
       uses: aws-actions/configure-aws-credentials@v3
       with:
-        role-to-assume: arn:aws:iam::471112860139:role/github.to.aws.oicd
+        role-to-assume: arn:aws:iam::471112860139:role/release-notes-role-gh-actions
         aws-region: us-west-2
 
     - name: Sync files to S3
       run: |
-        aws s3 sync . s3://s3-releasenotes-demo 
+        aws s3 sync . s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki
