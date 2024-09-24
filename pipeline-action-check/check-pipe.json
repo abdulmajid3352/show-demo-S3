@@ -1,0 +1,23 @@
+[
+    {
+      "entries": [
+        {
+          "text": "Added metrics for observer sync time."
+        },
+        {
+          "text": "Fixed a bug so that exists() method now checks for read ACL permissions."
+        }
+      ],
+      "type": "bullet-list"
+    },
+    {
+      "links": [
+        {
+          "text": "Apache ZooKeeper Release Notes",
+          "url": "https://zookeeper.apache.org/releases.html"
+        }
+      ],
+      "type": "learn-more"
+    }
+  ]
+  
