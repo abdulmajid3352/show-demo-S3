@@ -1,0 +1,56 @@
+[
+    {
+      "entries": [
+        {
+          "text": "Added metrics for observer sync time."
+        },
+        {
+          "text": "Introduced the fault injection framework Byteman for ZooKeeper."
+        },
+        {
+          "text": "Added an option to zkCli to wait for connection before executing commands."
+        },
+        {
+          "text": "Enabled the configuration of the early TLS connection drop feature."
+        },
+        {
+          "text": "Avoided NPE during metrics execution when the leader is not set on a FOLLOWER node."
+        },
+        {
+          "text": "Enabled the ZooKeeperServerController to expire sessions."
+        },
+        {
+          "text": "Enforced the quota limit."
+        },
+        {
+          "text": "Exposed Quota Metrics to Prometheus."
+        },
+        {
+          "text": "Reduced the performance impact of Prometheus metrics."
+        },
+        {
+          "text": "Fixed a bug where QuorumPeer overrides Thread.getId() with different semantics."
+        },
+        {
+          "text": "Fixed an issue where the ZK CLI quit command always logged errors."
+        },
+        {
+          "text": "Avoided reverse DNS lookup for hostname verification when hostnames are provided in the connection URL."
+        },
+        {
+          "text": "Fixed a bug so that exists() method now checks for read ACL permissions."
+        }
+      ],
+      "type": "bullet-list"
+    },
+    {
+      "links": [
+        {
+          "text": "Apache ZooKeeper Release Notes",
+          "url": "https://zookeeper.apache.org/releases.html"
+        }
+      ],
+      "type": "learn-more"
+    }
+  ]
+  
