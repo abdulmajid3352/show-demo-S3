@@ -2,39 +2,6 @@
     {
         "entries": [
             {
-                "text": "Fixed a race condition in the iptables mode of kube-proxy (v1.27 and later) that could cause some updates, such as adding new endpoint rules for a service, to be delayed or lost."
-            },
-            {
-                "text": "Fixed a race condition in kube-proxy when using LocalModeNodeCIDR, to avoid dropping Services traffic if the object node is recreated when kube-proxy is starting."
-            },
-            {
-                "text": "Fixed a regression in kube-proxy where it could refuse to start with single-stack IPv6 configuration on a node that has both IPv4 and IPv6 addresses."
-            },
-            {
-                "text": "Added support for proxying requests to a peer kube-apiserver if the local apiserver cannot serve them due to version skew or a disabled API."
-            },
-            {
-                "text": "Graduated the IPTablesOwnershipCleanup feature (KEP-3178) to GA; kubelet no longer creates the KUBE-MARK-DROP chain or the KUBE-MARK-MASQ chain, which is now created only by kube-proxy."
-            },
-            {
-                "text": "Added a feature for kube-proxy to handle Terminating EndpointSlices conditions, enabling zero downtime deployments for Services with ExternalTrafficPolicy=Local."
-            },
-            {
-                "text": "Added a feature to kube-proxy service health to include the X-Load-Balancing-Endpoint-Weight HTTP header, indicating the number of local endpoints; this information is also available in the response body JSON payload under LocalEndpoints."
-            },
-            {
-                "text": "Added a feature to Kube-proxy for implementing connection draining for terminating nodes by failing the health check when the node is unschedulable or marked as deleted, aligning with the agreed KEP."
-            },
-            {
-                "text": "Enhanced kube-proxy in iptables mode with separate metrics: sync_full_proxy_rules_duration_seconds and sync_partial_proxy_rules_duration_seconds, providing better insights into the duration of each sync type, instead of a combined weighted average."
-            },
-            {
-                "text": "The kube-proxy sync_proxy_rules_iptables_total metric now tracks the total number of iptables rules managed by kube-proxy, reverting to its pre-1.27 behavior. A new metric, sync_proxy_rules_iptables_last, now reports the number of rules re-synced on the last sync."
-            },
-            {
-                "text": "Kube-proxy will now issue a warning at startup if the configuration appears inconsistent with IP families (e.g., an IPv4 node IP with an IPv6 --cluster-cidr)."
-            },
-            {
                 "text": "Introduced a new feature gate, UpgradeAddonsBeforeControlPlane, to address a kube-proxy skew policy misalignment. This gate is set to false by default, so the upgrade of the CoreDNS and kube-proxy addons occurs after all control plane instances are upgraded, unless the feature gate is enabled. This feature gate will be removed in a future release."
             }
         ],
