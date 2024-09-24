@@ -15,6 +15,8 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
+      with:
+        fetch-depth: 2  # Fetch the last two commits
 
     - name: Configure AWS credentials from OpenID Connect
       uses: aws-actions/configure-aws-credentials@v3
@@ -22,15 +24,17 @@ jobs:
         role-to-assume: arn:aws:iam::471112860139:role/release-notes-role-gh-actions
         aws-region: us-west-2
 
-    - name: List changed files
-      id: changed_files
+    - name: Get list of changed files
+      id: changes
       run: |
-        git fetch --no-tags --prune --depth=1 origin +refs/heads/main
         git diff --name-only HEAD^ HEAD > changed_files.txt
         cat changed_files.txt
 
-    - name: Sync changed files to S3
+    - name: Sync only changed files to S3
       run: |
         while read file; do
-          aws s3 cp "$file" "s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/$file"
+          if [[ -f "$file" ]]; then
+            echo "Uploading $file to S3"
+            aws s3 cp "$file" "s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/$file"
+          fi
         done < changed_files.txt
