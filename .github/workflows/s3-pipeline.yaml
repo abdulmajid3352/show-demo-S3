@@ -22,6 +22,15 @@ jobs:
         role-to-assume: arn:aws:iam::471112860139:role/release-notes-role-gh-actions
         aws-region: us-west-2
 
-    - name: Sync files to S3
+    - name: List changed files
+      id: changed_files
       run: |
-        aws s3 sync . s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki
+        git fetch --no-tags --prune --depth=1 origin +refs/heads/main
+        git diff --name-only HEAD^ HEAD > changed_files.txt
+        cat changed_files.txt
+
+    - name: Sync changed files to S3
+      run: |
+        while read file; do
+          aws s3 cp "$file" "s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/$file"
+        done < changed_files.txt
