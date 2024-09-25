@@ -45,14 +45,21 @@ jobs:
           fi
         done
 
-    - name: Upload missing files in repository to S3
+    - name: Check if the S3 bucket is empty
+      id: bucket_check
+      run: |
+        if aws s3 ls s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/ | grep -q .; then
+          echo "Bucket is not empty"
+          echo "bucket-empty=false" >> $GITHUB_ENV
+        else
+          echo "Bucket is empty, uploading all files"
+          echo "bucket-empty=true" >> $GITHUB_ENV
+
+    - name: Upload all repository files if the bucket is empty (initial run)
+    if: ${{ env.bucket-empty == 'true' }}   # Corrected the conditional check
       run: |
         find . -type f ! -name "*.git*" | while read file; do
-          s3_file="s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/$file"
-          if ! aws s3 ls "$s3_file" > /dev/null 2>&1; then
-            echo "Uploading missing file: $file"
-            aws s3 cp "$file" "$s3_file"
-          else
-            echo "File already exists in S3: $file"
-          fi
+          s3_path="${file#./}"  # Remove the leading './' from the file path
+          echo "Uploading file: $file to S3 path: $s3_path"
+          aws s3 cp "$file" "s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/$s3_path"
         done
