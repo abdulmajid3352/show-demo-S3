@@ -27,9 +27,14 @@ jobs:
     - name: Preview S3 Sync Changes
       run: |
         echo "Previewing changes with --dryrun..."
-        aws s3 sync . s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/ --exclude ".git/*" --dryrun
+        aws s3 sync . s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/ --exclude ".git/*" --exact-timestamps --dryrun
 
     - name: Sync Files to S3
       run: |
         echo "Syncing changes to S3..."
-        aws s3 sync . s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/ --exclude ".git/*"
+        aws s3 sync . s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/ --exclude ".git/*" --exact-timestamps
+
+    - name: Remove renamed or deleted files from S3
+      run: |
+        echo "Removing old files from S3..."
+        aws s3 rm s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/finalizedjson/check1.html
