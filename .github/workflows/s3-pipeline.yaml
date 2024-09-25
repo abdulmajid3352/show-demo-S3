@@ -43,14 +43,17 @@ jobs:
           --exclude ".github/*" \
           --exclude ".*" \
           --size-only \
-          --delete
+          --delete \
+          --metadata-directive REPLACE
 
     - name: Post-Sync Clean-Up
       run: |
         echo "Cleaning up renamed or removed files from S3..."
-        # This command will remove objects from S3 that are no longer in the local repository
+        # Sync to ensure that any deleted or renamed files are removed from S3
         aws s3 sync . s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/ \
           --exclude ".git/*" \
           --exclude ".github/*" \
           --exclude ".*" \
-          --delete
+          --size-only \
+          --delete \
+          --metadata-directive REPLACE
