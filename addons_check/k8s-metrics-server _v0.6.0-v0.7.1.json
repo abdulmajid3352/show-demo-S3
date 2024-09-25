@@ -2,45 +2,6 @@
     {
         "entries": [
             {
-                "text": "Metrics Server now requires access to the nodes/metrics RBAC resource instead of nodes/stats. No changes are needed if using official manifests, but update RBAC resources if using the Metrics Server image with custom manifests."
-            },
-            {
-                "text": "Updated the registry location from k8s.gcr.io to registry.k8s.io to reflect the new registry endpoint for Kubernetes images."
-            },
-            {
-                "text": "Fixed a bug causing kubectl get PodMetrics/NodeMetrics to fail."
-            },
-            {
-                "text": "Addressed a kernel bug that led to incorrect CPU usage data, ensuring more accurate CPU usage metrics."
-            },
-            {
-                "text": "Fixed deadline exceeded errors caused by failures during metric parsing."
-            },
-            {
-                "text": "Added handling for malformed metrics received from Kubelet."
-            },
-            {
-                "text": "Introduced a new CLI flag --kubelet-request-timeout to customize the timeout of requests to kubelet."
-            },
-            {
-                "text": "Added the ability to exclude nodes by labels via the --node-selector flag."
-            },
-            {
-                "text": "Added support for modifying the metric collection path on nodes using the metrics.k8s.io/resource-metrics-path annotation."
-            },
-            {
-                "text": "Updated PodDisruptionBudget to policy/v1."
-            },
-            {
-                "text": "Added version-specific HA manifests."
-            },
-            {
-                "text": "Permitted running metrics-server under PodSecurity restricted."
-            },
-            {
-                "text": "Added containerSecurityContext for addonResizer."
-            },
-            {
                 "text": "Migrated to Kubelet resource metrics endpoint."
             }
         ],
