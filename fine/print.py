@@ -1,1 +1,1 @@
-print("okay123456")
+print("okay56")
