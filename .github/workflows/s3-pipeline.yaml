@@ -30,20 +30,17 @@ jobs:
         git diff --name-status HEAD^ HEAD > file_changes.txt
         cat file_changes.txt
 
-    - name: Upload changed files to S3
+    - name: Upload or remove files from S3 based on PR changes
       run: |
         cat file_changes.txt | while read status file; do
-          if [[ "$status" == "M" || "$status" == "A" ]]; then
-            echo "Uploading $file to S3"
+          if [[ "$status" == "A" ]]; then
+            echo "Added: $file"
             aws s3 cp "$file" "s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/$file"
-          fi
-        done
-
-    - name: Remove deleted files from S3
-      run: |
-        cat file_changes.txt | while read status file; do
-          if [[ "$status" == "D" ]]; then
-            echo "Removing $file from S3"
+          elif [[ "$status" == "M" ]]; then
+            echo "Modified: $file"
+            aws s3 cp "$file" "s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/$file"
+          elif [[ "$status" == "D" ]]; then
+            echo "Deleted: $file"
             aws s3 rm "s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/$file"
           fi
         done
