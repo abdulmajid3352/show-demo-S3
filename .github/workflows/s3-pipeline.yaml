@@ -24,17 +24,26 @@ jobs:
         role-to-assume: arn:aws:iam::471112860139:role/release-notes-role-gh-actions
         aws-region: us-west-2
 
-    - name: Get list of changed files
+    - name: Get list of changed and deleted files
       id: changes
       run: |
-        git diff --name-only HEAD^ HEAD > changed_files.txt
-        cat changed_files.txt
+        git diff --name-status HEAD^ HEAD > file_changes.txt
+        cat file_changes.txt
 
-    - name: Sync only changed files to S3
+    - name: Upload changed files to S3
       run: |
-        while read file; do
-          if [[ -f "$file" ]]; then
+        cat file_changes.txt | while read status file; do
+          if [[ "$status" == "M" || "$status" == "A" ]]; then
             echo "Uploading $file to S3"
             aws s3 cp "$file" "s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/$file"
           fi
-        done < changed_files.txt
+        done
+
+    - name: Remove deleted files from S3
+      run: |
+        cat file_changes.txt | while read status file; do
+          if [[ "$status" == "D" ]]; then
+            echo "Removing $file from S3"
+            aws s3 rm "s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/$file"
+          fi
+        done
