@@ -3,9 +3,6 @@
         "entries": [
             {
                 "text": "Migrated to Kubelet resource metrics endpoint."
-            },
-            {
-                "text": "FINAL CHECK"
             }
         ],
         "type": "bullet-list"
