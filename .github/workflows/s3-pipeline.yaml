@@ -44,3 +44,15 @@ jobs:
             aws s3 rm "s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/$file"
           fi
         done
+
+    - name: Upload missing files in repository to S3
+      run: |
+        find . -type f ! -name "*.git*" | while read file; do
+          s3_file="s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/$file"
+          if ! aws s3 ls "$s3_file" > /dev/null 2>&1; then
+            echo "Uploading missing file: $file"
+            aws s3 cp "$file" "$s3_file"
+          else
+            echo "File already exists in S3: $file"
+          fi
+        done
