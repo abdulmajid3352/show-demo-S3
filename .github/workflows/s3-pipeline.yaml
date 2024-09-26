@@ -29,13 +29,13 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y awscli jq
 
-    - name: Calculate MD5 hashes for local files
+    - name: Calculate MD5 hashes for local files (only inside addons)
       run: |
-        find ./addons -type f -exec md5sum {} + | sed 's| ./| |' > local_md5.txt
+        find ./addons -type f -exec md5sum {} + | sed 's| ./addons/| |' > local_md5.txt
 
-    - name: Get S3 file hashes
+    - name: Get S3 file hashes (files only, no addons folder)
       run: |
-        aws s3 ls s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/addons/ --recursive \
+        aws s3 ls s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/ --recursive \
         | awk '{print $4}' \
         | xargs -I {} aws s3api head-object --bucket persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki --key "{}" \
         | jq -r '.ETag, .Key' \
@@ -72,5 +72,5 @@ jobs:
     - name: Upload new and changed files to S3
       if: success()
       run: |
-        cat to_add.txt | xargs -I {} aws s3 cp ./{} s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/addons/ --metadata-directive REPLACE
-        cat changed_files.txt | xargs -I {} aws s3 cp ./{} s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/addons/ --metadata-directive REPLACE
+        cat to_add.txt | xargs -I {} aws s3 cp ./addons/{} s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/ --metadata-directive REPLACE
+        cat changed_files.txt | xargs -I {} aws s3 cp ./addons/{} s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/ --metadata-directive REPLACE
