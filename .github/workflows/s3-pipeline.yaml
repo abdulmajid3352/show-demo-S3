@@ -38,8 +38,8 @@ jobs:
         aws s3api list-objects-v2 --bucket persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki \
         --prefix "" --query "Contents[].{Key: Key, ETag: ETag}" --output json > s3_files.json
 
-        # Extract S3 keys and ETags (removing quotes from ETag)
-        jq -r '.[] | "\(.Key) \(.ETag | gsub(\\\"; ""; g))"' s3_files.json > s3_md5.txt
+        # Extract S3 keys and ETags (properly removing quotes from ETag)
+        jq -r '.[] | "\(.Key) \(.ETag | gsub("\\""; ""; g))"' s3_files.json > s3_md5.txt
 
     - name: Compare MD5 and detect changes
       run: |
