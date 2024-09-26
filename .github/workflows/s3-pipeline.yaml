@@ -12,6 +12,7 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
@@ -30,52 +31,37 @@ jobs:
         git diff --name-status HEAD^ HEAD > changes.log
         cat changes.log
 
-    - name: Compare files using MD5 hash and detect changes
-      id: detect_changes
+    - name: Handle file changes (add, modify, rename, delete)
       run: |
-        # Create a list to hold files to upload
-        touch files_to_upload.txt
-        # Compare file content using md5sum
-        for file in $(find ./addons -type f); do
-          local_md5=$(md5sum "$file" | cut -d' ' -f1)
-          s3_md5=$(aws s3api head-object --bucket persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki --key "$(basename $file)" --query 'ETag' --output text | tr -d '"')
-
-          # If MD5 hash doesn't match or file does not exist in S3, add to upload list
-          if [ "$local_md5" != "$s3_md5" ] || [ -z "$s3_md5" ]; then
-            echo "File changed or new: $file"
-            echo "$file" >> files_to_upload.txt
-          fi
-        done
-
-    - name: Detect renames and deletions
-      run: |
-        # Detect renamed or deleted files using git diff
+        # Loop through the diff log to identify changes
         while read status file; do
-          if [[ "$status" == "R"* ]]; then
-            old_file=$(echo "$file" | cut -d' ' -f1)
-            new_file=$(echo "$file" | cut -d' ' -f2)
-            echo "File renamed from $old_file to $new_file"
-            aws s3 rm s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/$(basename $old_file)
-            echo "$new_file" >> files_to_upload.txt
-          elif [[ "$status" == "D" ]]; then
-            echo "File deleted: $file"
-            aws s3 rm s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/$(basename $file)
-          fi
+          case "$status" in
+            A)  # File added
+                echo "Adding file: $file"
+                aws s3 cp "$file" s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/$(basename $file)
+                ;;
+            M)  # File modified
+                echo "Modifying file: $file"
+                aws s3 cp "$file" s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/$(basename $file) --metadata-directive REPLACE
+                ;;
+            R*) # File renamed
+                old_file=$(echo "$file" | cut -f1)
+                new_file=$(echo "$file" | cut -f2)
+                echo "Renaming file from $old_file to $new_file"
+                aws s3 rm s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/$(basename $old_file)
+                aws s3 cp "$new_file" s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/$(basename $new_file)
+                ;;
+            D)  # File deleted
+                echo "Deleting file: $file"
+                aws s3 rm s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/$(basename $file)
+                ;;
+            *)  # Skip unrecognized statuses
+                echo "Unknown status $status for file $file"
+                ;;
+          esac
         done < changes.log
 
     - name: Preview changes
       run: |
-        if [[ -f files_to_upload.txt ]]; then
-          echo "Files to upload:"
-          cat files_to_upload.txt
-        else
-          echo "No files to upload."
-        fi
-
-    - name: Upload changed files to S3
-      run: |
-        if [[ -f files_to_upload.txt ]]; then
-          while read file; do
-            aws s3 cp "$file" s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/ --metadata-directive REPLACE
-          done < files_to_upload.txt
-        fi
+        echo "Showing all changes"
+        cat changes.log
