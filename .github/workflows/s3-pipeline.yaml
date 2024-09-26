@@ -38,13 +38,13 @@ jobs:
         fi
 
     - name: Initial full upload if this is the first run
-      if: env.exists == 'false'
+      if: ${{ steps.check_s3.outputs.exists == 'false' }}
       run: |
         echo "Uploading all contents of the addons directory to S3 (first run)..."
         aws s3 cp ./addons s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/ --recursive
 
     - name: Get list of changed files in addons directory
-      if: env.exists == 'true'
+      if: ${{ steps.check_s3.outputs.exists == 'true' }}
       id: changes
       run: |
         # Only track changes in the addons directory after the first run
@@ -52,7 +52,7 @@ jobs:
         cat changes.log
 
     - name: Handle file changes (add, modify, rename, delete) in addons directory only
-      if: env.exists == 'true'
+      if: ${{ steps.check_s3.outputs.exists == 'true' }}
       run: |
         # Loop through the diff log to identify changes in the addons directory
         while read status file; do
@@ -61,22 +61,22 @@ jobs:
             case "$status" in
               A)  # File added
                   echo "Adding file: $file"
-                  aws s3 cp "$file" s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/$(basename $file)
+                  aws s3 cp "$file" s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/addons/$(basename $file)
                   ;;
               M)  # File modified
                   echo "Modifying file: $file"
-                  aws s3 cp "$file" s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/$(basename $file) --metadata-directive REPLACE
+                  aws s3 cp "$file" s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/addons/$(basename $file) --metadata-directive REPLACE
                   ;;
               R*) # File renamed
                   old_file=$(echo "$file" | cut -f1)
                   new_file=$(echo "$file" | cut -f2)
                   echo "Renaming file from $old_file to $new_file"
-                  aws s3 rm s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/$(basename $old_file)
-                  aws s3 cp "$new_file" s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/$(basename $new_file)
+                  aws s3 rm s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/addons/$(basename $old_file)
+                  aws s3 cp "$new_file" s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/addons/$(basename $new_file)
                   ;;
               D)  # File deleted
                   echo "Deleting file: $file"
-                  aws s3 rm s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/$(basename $file)
+                  aws s3 rm s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/addons/$(basename $file)
                   ;;
               *)  # Skip unrecognized statuses
                   echo "Unknown status $status for file $file"
@@ -86,6 +86,7 @@ jobs:
         done < changes.log
 
     - name: Preview changes
+      if: ${{ steps.check_s3.outputs.exists == 'true' }}
       run: |
         echo "Showing all changes in addons directory"
         cat changes.log
