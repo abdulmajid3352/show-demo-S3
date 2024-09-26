@@ -58,7 +58,7 @@ jobs:
       run: |
         if [ -s changed_files.txt ]; then
           echo "Syncing changes to S3..."
-          cat changed_files.txt | awk '{print $2}' | xargs -I {} aws s3 cp {} s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/ --metadata-directive REPLACE
+          cat changed_files.txt | awk '{print $2}' | xargs -I {} aws s3 cp {} s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/
         else
           echo "No changes to sync."
         fi
@@ -69,8 +69,7 @@ jobs:
         echo "Cleaning up deleted files from S3..."
         aws s3 sync ./addons s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/ \
           --size-only \
-          --delete \
-          --metadata-directive REPLACE
+          --delete
 
     # Step 7: Update remote checksums in S3
     - name: Update remote checksums in S3
