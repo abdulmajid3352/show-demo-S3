@@ -28,18 +28,20 @@ jobs:
     - name: Check if S3 bucket is empty
       id: s3_check
       run: |
-        # List objects in the S3 bucket and check if it's empty
-        OBJECTS=$(aws s3api list-objects --bucket persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki --query 'Contents' --output text)
+        # Check if the S3 bucket is empty by listing objects using list-objects-v2
+        OBJECTS=$(aws s3api list-objects-v2 --bucket persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki --query 'Contents' --output text)
+        
+        # If no objects are found, set bucket status as empty
         if [[ -z "$OBJECTS" ]]; then
           echo "Bucket is empty"
-          echo "::set-output name=bucket_status::empty"
+          echo "bucket_status=empty" >> $GITHUB_ENV
         else
           echo "Bucket is not empty"
-          echo "::set-output name=bucket_status::not_empty"
+          echo "bucket_status=not_empty" >> $GITHUB_ENV
         fi
 
     - name: First-time upload (if bucket is empty)
-      if: steps.s3_check.outputs.bucket_status == 'empty'
+      if: env.bucket_status == 'empty'
       run: |
         echo "Uploading all contents of addons directory as bucket is empty."
         aws s3 cp --recursive ./addons/ s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/
@@ -52,7 +54,7 @@ jobs:
         cat changes.log
 
     - name: Handle file changes (add, modify, rename, delete) in addons directory only
-      if: steps.s3_check.outputs.bucket_status == 'not_empty'
+      if: env.bucket_status == 'not_empty'
       run: |
         # Loop through the diff log to identify changes in the addons directory
         while read status file; do
