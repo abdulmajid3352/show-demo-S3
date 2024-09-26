@@ -25,14 +25,34 @@ jobs:
         role-to-assume: arn:aws:iam::471112860139:role/release-notes-role-gh-actions
         aws-region: us-west-2
 
+    - name: Check if S3 bucket is empty or addons directory exists in S3
+      id: check_s3
+      run: |
+        # Check if any content exists in the S3 bucket related to addons
+        if aws s3 ls s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/addons/ | grep -q "addons"; then
+          echo "addons directory already exists in S3."
+          echo "exists=true" >> $GITHUB_ENV
+        else
+          echo "addons directory does not exist in S3. This is the first run."
+          echo "exists=false" >> $GITHUB_ENV
+        fi
+
+    - name: Initial full upload if this is the first run
+      if: env.exists == 'false'
+      run: |
+        echo "Uploading all contents of the addons directory to S3 (first run)..."
+        aws s3 cp ./addons s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/ --recursive
+
     - name: Get list of changed files in addons directory
+      if: env.exists == 'true'
       id: changes
       run: |
-        # Only track changes in the addons directory
+        # Only track changes in the addons directory after the first run
         git diff --name-status HEAD^ HEAD -- addons/ > changes.log
         cat changes.log
 
     - name: Handle file changes (add, modify, rename, delete) in addons directory only
+      if: env.exists == 'true'
       run: |
         # Loop through the diff log to identify changes in the addons directory
         while read status file; do
