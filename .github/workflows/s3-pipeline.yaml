@@ -57,7 +57,7 @@ jobs:
     - name: Sync Files to S3
       run: |
         if [ -s changed_files.txt ]; then
-          echo "Syncing changes to S3..."
+          echo "Syncing changed files to S3..."
           cat changed_files.txt | awk '{print $2}' | xargs -I {} aws s3 cp {} s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/
         else
           echo "No changes to sync."
