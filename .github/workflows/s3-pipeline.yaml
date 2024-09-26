@@ -31,25 +31,32 @@ jobs:
 
     - name: Calculate MD5 hashes for local files (only inside addons)
       run: |
+        echo "Calculating MD5 hashes for local files..."
         find ./addons -type f -exec md5sum {} + | sed 's| ./addons/| |' > local_md5.txt
+        cat local_md5.txt
+        echo "MD5 hashes for local files generated."
 
     - name: Get S3 file metadata (without multipart ETags)
       run: |
+        echo "Fetching S3 object metadata..."
         aws s3api list-objects-v2 --bucket persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki \
         --prefix "" --query "Contents[].{Key: Key, ETag: ETag}" --output json > s3_files.json
 
         # Extract S3 keys and ETags (removing quotes from ETag using tr)
         jq -r '.[] | "\(.Key) \(.ETag)"' s3_files.json | tr -d '"' > s3_md5.txt
+        echo "S3 file metadata with ETags:"
+        cat s3_md5.txt
 
     - name: Compare MD5 and detect changes
       run: |
         # Create lists of added, changed, and deleted files
+        echo "Comparing local and S3 file lists..."
         awk '{print $1}' s3_md5.txt | sort > s3_files.txt
         awk '{print $2}' local_md5.txt | sort > local_files.txt
 
         comm -23 s3_files.txt local_files.txt > to_delete.txt  # Files in S3 but not in local (to delete)
         comm -13 s3_files.txt local_files.txt > to_add.txt     # Files in local but not in S3 (to add)
-
+        
         # Detect changed files by comparing hashes
         join -1 2 -2 2 -o 1.1,1.2,2.1 <(sort -k 2 local_md5.txt) <(sort -k 2 s3_md5.txt) \
         | awk '$1 != $3' > changed_files.txt  # Changed file hashes
@@ -67,11 +74,14 @@ jobs:
     - name: Delete removed files from S3
       if: success()
       run: |
+        echo "Deleting files from S3..."
         cat to_delete.txt | xargs -I {} aws s3 rm s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/{} || true
 
     - name: Upload new and changed files to S3
       if: success()
       run: |
-        # Upload only new or changed files, avoiding multipart unless necessary
+        echo "Uploading new files to S3..."
         cat to_add.txt | xargs -I {} aws s3 cp ./addons/{} s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/ --metadata-directive REPLACE
+        
+        echo "Uploading changed files to S3..."
         cat changed_files.txt | xargs -I {} aws s3 cp ./addons/{} s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/ --metadata-directive REPLACE
