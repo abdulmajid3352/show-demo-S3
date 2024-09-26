@@ -24,55 +24,16 @@ jobs:
         role-to-assume: arn:aws:iam::471112860139:role/release-notes-role-gh-actions
         aws-region: us-west-2
 
-    # Step 1: Generate local checksums
-    - name: Generate local checksums
-      run: |
-        echo "Generating local checksums for the addons directory..."
-        find ./addons -type f -exec md5sum {} + > local_checksums.txt
-
-    # Step 2: Fetch remote checksums from S3 (if they exist)
-    - name: Fetch remote checksums from S3
-      run: |
-        echo "Fetching remote checksums from S3..."
-        aws s3 cp s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/checksums.txt ./remote_checksums.txt || echo "No remote checksums found"
-
-    # Step 3: Compare local and remote checksums
-    - name: Compare checksums
-      run: |
-        echo "Comparing checksums to detect changed files..."
-        touch remote_checksums.txt  # Create empty file if remote checksums are not found
-        diff --changed-group-format='%>' --unchanged-group-format='' remote_checksums.txt local_checksums.txt > changed_files.txt || true
-
-    # Step 4: Preview S3 Sync Changes based on checksum comparison
     - name: Preview S3 Sync Changes
       run: |
-        if [ -s changed_files.txt ]; then
-          echo "Previewing changes with --dryrun..."
-          cat changed_files.txt | awk '{print $2}' | xargs -I {} aws s3 cp {} s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/ --dryrun
-        else
-          echo "No changes detected based on checksums."
-        fi
+        echo "Previewing changes with --dryrun..."
+        aws s3 sync ./addons s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/addons/ \
+          --delete \
+          --dryrun
 
-    # Step 5: Sync Files to S3 if changes are detected
     - name: Sync Files to S3
       run: |
-        if [ -s changed_files.txt ]; then
-          echo "Syncing changed files to S3..."
-          cat changed_files.txt | awk '{print $2}' | xargs -I {} aws s3 cp {} s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/
-        else
-          echo "No changes to sync."
-        fi
-
-    # Step 6: Post-Sync Clean-Up to handle deletions
-    - name: Post-Sync Clean-Up
-      run: |
-        echo "Cleaning up deleted files from S3..."
-        aws s3 sync ./addons s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/ \
-          --size-only \
-          --delete
-
-    # Step 7: Update remote checksums in S3
-    - name: Update remote checksums in S3
-      run: |
-        echo "Updating remote checksums in S3..."
-        aws s3 cp local_checksums.txt s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/checksums.txt
+        echo "Syncing changes to S3..."
+        aws s3 sync ./addons s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/addons/ \
+          --delete \
+          --metadata-directive REPLACE
