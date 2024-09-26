@@ -41,7 +41,7 @@ jobs:
         fi
 
     - name: First-time upload (if bucket is empty)
-      if: env.bucket_status == 'empty'
+      if: ${{ steps.s3_check.outputs.bucket_status == 'empty' }}
       run: |
         echo "Uploading all contents of addons directory as bucket is empty."
         aws s3 cp --recursive ./addons/ s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/
@@ -54,7 +54,7 @@ jobs:
         cat changes.log
 
     - name: Handle file changes (add, modify, rename, delete) in addons directory only
-      if: env.bucket_status == 'not_empty'
+      if: ${{ steps.s3_check.outputs.bucket_status == 'not_empty' }}
       run: |
         # Loop through the diff log to identify changes in the addons directory
         while read status file; do
