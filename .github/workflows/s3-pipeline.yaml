@@ -36,13 +36,13 @@ jobs:
         echo "MD5 hashes for local files:"
         cat local_md5.txt
 
-    - name: Get S3 file metadata
+    - name: Get S3 file metadata (without multipart ETags)
       run: |
         echo "Fetching S3 object metadata..."
         aws s3api list-objects-v2 --bucket persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki \
         --prefix "" --query "Contents[].{Key: Key, ETag: ETag}" --output json > s3_files.json
 
-        # Extract S3 keys and ETags (removing quotes from ETag)
+        # Extract S3 keys and ETags (removing quotes from ETag using tr)
         jq -r '.[] | "\(.Key) \(.ETag)"' s3_files.json | tr -d '"' > s3_md5.txt
         echo "S3 file metadata with ETags:"
         cat s3_md5.txt
@@ -80,7 +80,7 @@ jobs:
         echo "Deleting files from S3..."
         cat to_delete.txt | xargs -I {} aws s3 rm s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/{} || true
 
-    - name: Upload new and changed files to S3
+    - name: Upload new files to S3
       if: success()
       run: |
         echo "Uploading new files to S3..."
@@ -89,6 +89,9 @@ jobs:
           aws s3 cp ./addons/$file s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/$file --metadata-directive REPLACE
         done
         
+    - name: Upload changed files to S3
+      if: success()
+      run: |
         echo "Uploading changed files to S3..."
         cat changed_files.txt | while read file; do
           echo "Uploading $file"
