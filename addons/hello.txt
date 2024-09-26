@@ -2,7 +2,7 @@
     {
         "entries": [
             {
-                "text": "t1"
+                "text": "1"
             }
         ],
         "type": "bullet-list"
