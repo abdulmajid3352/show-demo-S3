@@ -16,7 +16,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
       with:
-        fetch-depth: 2  # Fetch the last two commits
+        fetch-depth: 2  # Fetch the last two commits to detect renames
 
     - name: Configure AWS credentials from OpenID Connect
       uses: aws-actions/configure-aws-credentials@v3
@@ -24,18 +24,53 @@ jobs:
         role-to-assume: arn:aws:iam::471112860139:role/release-notes-role-gh-actions
         aws-region: us-west-2
 
-    - name: Preview S3 Sync Changes
+    - name: Install necessary packages
       run: |
-        echo "Previewing changes with --dryrun..."
-        aws s3 sync ./addons s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/addons/ \
-          --delete \
-          --exact-timestamps \
-          --dryrun
+        sudo apt-get update
+        sudo apt-get install -y awscli jq
 
-    - name: Sync Files to S3
+    - name: Calculate MD5 hashes for local files
       run: |
-        echo "Syncing changes to S3..."
-        aws s3 sync ./addons s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/addons/ \
-          --delete \
-          --exact-timestamps \
-          --metadata-directive REPLACE
+        find ./addons -type f -exec md5sum {} + | sed 's| ./| |' > local_md5.txt
+
+    - name: Get S3 file hashes
+      run: |
+        aws s3 ls s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/addons/ --recursive \
+        | awk '{print $4}' \
+        | xargs -I {} aws s3api head-object --bucket persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki --key "{}" \
+        | jq -r '.ETag, .Key' \
+        | paste - - > s3_md5.txt
+
+    - name: Compare MD5 and detect changes
+      run: |
+        # Create lists of added, changed, and deleted files
+        awk '{print $2}' s3_md5.txt | sort > s3_files.txt
+        awk '{print $2}' local_md5.txt | sort > local_files.txt
+
+        comm -23 s3_files.txt local_files.txt > to_delete.txt  # Files in S3 but not in local (to delete)
+        comm -13 s3_files.txt local_files.txt > to_add.txt     # Files in local but not in S3 (to add)
+        
+        # Detect changed files by comparing hashes
+        join -1 2 -2 2 -o 1.1,1.2,2.1 <(sort -k 2 local_md5.txt) <(sort -k 2 s3_md5.txt) \
+        | awk '$1 != $3' > changed_files.txt  # Changed file hashes
+
+        # Echo the changes for preview
+        echo "Files to delete from S3:"
+        cat to_delete.txt
+
+        echo "Files to add to S3:"
+        cat to_add.txt
+
+        echo "Files that have changed:"
+        cat changed_files.txt
+
+    - name: Delete removed files from S3
+      if: success()
+      run: |
+        cat to_delete.txt | xargs -I {} aws s3 rm s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/{} || true
+
+    - name: Upload new and changed files to S3
+      if: success()
+      run: |
+        cat to_add.txt | xargs -I {} aws s3 cp ./{} s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/addons/ --metadata-directive REPLACE
+        cat changed_files.txt | xargs -I {} aws s3 cp ./{} s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/addons/ --metadata-directive REPLACE
