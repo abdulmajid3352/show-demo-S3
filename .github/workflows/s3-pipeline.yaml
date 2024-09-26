@@ -28,14 +28,15 @@ jobs:
     - name: Check if S3 bucket is empty
       id: s3_check
       run: |
-        # Check if the S3 bucket is empty by listing objects
-        OBJECTS=$(aws s3 ls s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/)
+        # List objects in the S3 bucket and check if it's empty
+        OBJECTS=$(aws s3api list-objects --bucket persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki --query 'Contents' --output text)
         if [[ -z "$OBJECTS" ]]; then
-          echo "Bucket is empty."
-          echo "empty" > bucket_status.txt
+          echo "Bucket is empty"
+          echo "::set-output name=bucket_status::empty"
         else
-          echo "Bucket is not empty."
-          echo "not_empty" > bucket_status.txt
+          echo "Bucket is not empty"
+          echo "::set-output name=bucket_status::not_empty"
+        fi
 
     - name: First-time upload (if bucket is empty)
       if: steps.s3_check.outputs.bucket_status == 'empty'
@@ -51,7 +52,7 @@ jobs:
         cat changes.log
 
     - name: Handle file changes (add, modify, rename, delete) in addons directory only
-      if: steps.s3_check.outputs.bucket_status == 'not_empty'  # Skip if first-time run
+      if: steps.s3_check.outputs.bucket_status == 'not_empty'
       run: |
         # Loop through the diff log to identify changes in the addons directory
         while read status file; do
