@@ -1,0 +1,19 @@
+[
+    {
+        "entries": [
+            {
+                "text": "99"
+            }
+        ],
+        "type": "bullet-list"
+    },
+    {
+        "links": [
+            {
+                "text": "Kubernetes Metrics Server Release Notes",
+                "url": "https://github.com/kubernetes-sigs/metrics-server/releases"
+            }
+        ],
+        "type": "learn-more"
+    }
+]
