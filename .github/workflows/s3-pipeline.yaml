@@ -25,14 +25,34 @@ jobs:
         role-to-assume: arn:aws:iam::471112860139:role/release-notes-role-gh-actions
         aws-region: us-west-2
 
+    - name: Check or create pipeline counter
+      id: check_counter
+      run: |
+        # Check if the counter file exists, if not, create it and set to 0
+        if [ ! -f .pipeline_counter ]; then
+          echo "0" > .pipeline_counter
+        fi
+        # Read the current value of the counter
+        COUNTER=$(cat .pipeline_counter)
+        echo "Pipeline counter is: $COUNTER"
+        echo "::set-output name=counter::$COUNTER"
+
+    - name: First run - copy all contents of addons to S3 (preserving folder structure)
+      if: steps.check_counter.outputs.counter == '0'
+      run: |
+        echo "First run detected, copying all files in addons directory to S3 (preserving folder structure)..."
+        aws s3 cp ./addons/ s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/ --recursive --exclude ".pipeline_counter" --include "addons/*"
+
     - name: Get list of changed files in addons directory
+      if: steps.check_counter.outputs.counter != '0'
       id: changes
       run: |
         # Only track changes in the addons directory
         git diff --name-status HEAD^ HEAD -- addons/ > changes.log
         cat changes.log
 
-    - name: Handle file changes (add, modify, rename, delete) in addons directory only
+    - name: Handle file changes (add, modify, rename, delete) in addons directory only (preserving folder structure)
+      if: steps.check_counter.outputs.counter != '0'
       run: |
         # Loop through the diff log to identify changes in the addons directory
         while read status file; do
@@ -41,22 +61,22 @@ jobs:
             case "$status" in
               A)  # File added
                   echo "Adding file: $file"
-                  aws s3 cp "$file" s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/$(basename $file)
+                  aws s3 cp "$file" s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/${file#addons/}
                   ;;
               M)  # File modified
                   echo "Modifying file: $file"
-                  aws s3 cp "$file" s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/$(basename $file) --metadata-directive REPLACE
+                  aws s3 cp "$file" s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/${file#addons/} --metadata-directive REPLACE
                   ;;
               R*) # File renamed
                   old_file=$(echo "$file" | cut -f1)
                   new_file=$(echo "$file" | cut -f2)
                   echo "Renaming file from $old_file to $new_file"
-                  aws s3 rm s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/$(basename $old_file)
-                  aws s3 cp "$new_file" s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/$(basename $new_file)
+                  aws s3 rm s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/${old_file#addons/}
+                  aws s3 cp "$new_file" s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/${new_file#addons/}
                   ;;
               D)  # File deleted
                   echo "Deleting file: $file"
-                  aws s3 rm s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/$(basename $file)
+                  aws s3 rm s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/${file#addons/}
                   ;;
               *)  # Skip unrecognized statuses
                   echo "Unknown status $status for file $file"
@@ -65,7 +85,17 @@ jobs:
           fi
         done < changes.log
 
-    - name: Preview changes
+    - name: Increment pipeline counter
       run: |
-        echo "Showing all changes in addons directory"
-        cat changes.log
+        COUNTER=$(cat .pipeline_counter)
+        NEW_COUNTER=$((COUNTER + 1))
+        echo "$NEW_COUNTER" > .pipeline_counter
+        echo "Pipeline counter incremented to: $NEW_COUNTER"
+
+    - name: Commit the updated counter
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add .pipeline_counter
+        git commit -m "Increment pipeline counter"
+        git push
