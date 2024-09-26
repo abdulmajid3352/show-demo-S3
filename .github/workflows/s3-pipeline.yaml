@@ -33,24 +33,30 @@ jobs:
     - name: Compare files using MD5 hash and detect changes
       id: detect_changes
       run: |
+        # Create a list to hold files to upload
+        touch files_to_upload.txt
         # Compare file content using md5sum
         for file in $(find ./addons -type f); do
           local_md5=$(md5sum "$file" | cut -d' ' -f1)
           s3_md5=$(aws s3api head-object --bucket persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki --key "$(basename $file)" --query 'ETag' --output text | tr -d '"')
 
-          if [ "$local_md5" != "$s3_md5" ]; then
-            echo "File changed: $file"
+          # If MD5 hash doesn't match or file does not exist in S3, add to upload list
+          if [ "$local_md5" != "$s3_md5" ] || [ -z "$s3_md5" ]; then
+            echo "File changed or new: $file"
             echo "$file" >> files_to_upload.txt
           fi
         done
 
     - name: Detect renames and deletions
       run: |
-        # Detect renamed or deleted files
+        # Detect renamed or deleted files using git diff
         while read status file; do
           if [[ "$status" == "R"* ]]; then
-            echo "File renamed: $file"
-            aws s3 rm s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/$(basename $file)
+            old_file=$(echo "$file" | cut -d' ' -f1)
+            new_file=$(echo "$file" | cut -d' ' -f2)
+            echo "File renamed from $old_file to $new_file"
+            aws s3 rm s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/$(basename $old_file)
+            echo "$new_file" >> files_to_upload.txt
           elif [[ "$status" == "D" ]]; then
             echo "File deleted: $file"
             aws s3 rm s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/$(basename $file)
