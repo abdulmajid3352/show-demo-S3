@@ -29,6 +29,7 @@ jobs:
         echo "Previewing changes with --dryrun..."
         aws s3 sync ./addons s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/addons/ \
           --delete \
+          --exact-timestamps \
           --dryrun
 
     - name: Sync Files to S3
@@ -36,4 +37,5 @@ jobs:
         echo "Syncing changes to S3..."
         aws s3 sync ./addons s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/addons/ \
           --delete \
+          --exact-timestamps \
           --metadata-directive REPLACE
