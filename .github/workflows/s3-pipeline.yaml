@@ -27,33 +27,15 @@ jobs:
     - name: Preview S3 Sync Changes
       run: |
         echo "Previewing changes with --dryrun..."
-        aws s3 sync . s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/ \
-          --exclude ".git/*" \
-          --exclude ".github/*" \
-          --exclude ".*" \
-          --size-only \
+        aws s3 sync ./addons s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/ \
+          --exact-timestamps \
           --delete \
           --dryrun
 
     - name: Sync Files to S3
       run: |
         echo "Syncing changes to S3..."
-        aws s3 sync . s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/ \
-          --exclude ".git/*" \
-          --exclude ".github/*" \
-          --exclude ".*" \
-          --size-only \
-          --delete \
-          --metadata-directive REPLACE
-
-    - name: Post-Sync Clean-Up
-      run: |
-        echo "Cleaning up renamed or removed files from S3..."
-        # Sync to ensure that any deleted or renamed files are removed from S3
-        aws s3 sync . s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/ \
-          --exclude ".git/*" \
-          --exclude ".github/*" \
-          --exclude ".*" \
-          --size-only \
+        aws s3 sync ./addons s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/ \
+          --exact-timestamps \
           --delete \
           --metadata-directive REPLACE
