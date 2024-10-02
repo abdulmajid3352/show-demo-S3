@@ -24,6 +24,24 @@ jobs:
         role-to-assume: arn:aws:iam::471112860139:role/release-notes-role-gh-actions
         aws-region: us-west-2
 
-    - name: Sync files to S3 and delete removed files
+    - name: Preview S3 Sync Changes
       run: |
-        aws s3 sync . "s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/" --delete --exclude ".git/*" --exclude ".github/*"
+        echo "Previewing changes with --dryrun..."
+        aws s3 sync . s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/ \
+          --exclude ".git/*" \
+          --exclude ".github/*" \
+          --exclude ".*" \
+          --size-only \
+          --delete \
+          --dryrun
+
+    - name: Sync Files to S3
+      run: |
+        echo "Syncing changes to S3..."
+        aws s3 sync . s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/ \
+          --exclude ".git/*" \
+          --exclude ".github/*" \
+          --exclude ".*" \
+          --size-only \
+          --delete \
+          --metadata-directive REPLACE
