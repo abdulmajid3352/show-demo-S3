@@ -31,7 +31,6 @@ jobs:
           --exclude ".git/*" \
           --exclude ".github/*" \
           --exclude ".*" \
-          --size-only \
           --delete \
           --dryrun
 
@@ -42,6 +41,5 @@ jobs:
           --exclude ".git/*" \
           --exclude ".github/*" \
           --exclude ".*" \
-          --size-only \
           --delete \
           --metadata-directive REPLACE
