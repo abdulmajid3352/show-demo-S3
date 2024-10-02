@@ -41,22 +41,22 @@ jobs:
             case "$status" in
               A)  # File added
                   echo "Adding file: $file"
-                  aws s3 cp "$file" s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/${file#addons/}
+                  aws s3 cp "$file" s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/v1/${file#addons/}
                   ;;
               M)  # File modified
                   echo "Modifying file: $file"
-                  aws s3 cp "$file" s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/${file#addons/} --metadata-directive REPLACE
+                  aws s3 cp "$file" s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/v1/${file#addons/} --metadata-directive REPLACE
                   ;;
               R*) # File renamed
                   old_file=$(echo "$file" | cut -f1)
                   new_file=$(echo "$file" | cut -f2)
                   echo "Renaming file from $old_file to $new_file"
-                  aws s3 rm s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/${old_file#addons/}
-                  aws s3 cp "$new_file" s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/${new_file#addons/}
+                  aws s3 rm s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/v1/${old_file#addons/}
+                  aws s3 cp "$new_file" s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/v1/${new_file#addons/}
                   ;;
               D)  # File deleted
                   echo "Deleting file: $file"
-                  aws s3 rm s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/${file#addons/}
+                  aws s3 rm s3://persistentstack-us-west-2-releasenotesbucketdbdb4f-pys20oqkdpki/v1/${file#addons/}
                   ;;
               *)  # Skip unrecognized statuses
                   echo "Unknown status $status for file $file"
